@@ -1,0 +1,42 @@
+on:
+ push:
+   branches:
+     - dev
+
+name: Deploy to Amazon ECS
+
+jobs:
+ deploy:
+   name: Deploy
+   runs-on: ubuntu-latest
+
+   steps:
+   - name: Checkout
+     uses: actions/checkout@v2
+
+   - name: Configure AWS credentials
+     uses: aws-actions/configure-aws-credentials@v1
+     with:
+       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+       aws-region: eu-central-1
+
+   - name: Login to Amazon ECR
+     id: login-ecr
+     uses: aws-actions/amazon-ecr-login@v1
+
+   - name: Build, tag, and push image to Amazon ECR
+     id: build-image
+     env:
+       ECR_REPOSITORY: ${{ secrets.STAGING_ECR_REPO }}
+       IMAGE_TAG: latest
+     run: |
+       # Build a docker container and
+       # push it to ECR so that it can
+       # be deployed to ECS.
+       docker build -t ${{ secrets.STAGING_ECR_REPO }}:latest .
+       docker push ${{ secrets.STAGING_ECR_REPO }}:latest
+
+   - name: Update ECS service
+     id: service-update
+     run: aws ecs update-service --cluster oasis-casual-staging  --service oasis-casual-service-staging --force-new-deployment  --endpoint https://ecs.eu-central-1.amazonaws.com --region eu-central-1
