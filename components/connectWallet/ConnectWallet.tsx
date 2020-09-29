@@ -3,27 +3,18 @@ import { Icon } from '@makerdao/dai-ui-icons'
 import { UnsupportedChainIdError } from '@web3-react/core'
 import { InjectedConnector } from '@web3-react/injected-connector'
 import { NetworkConnector } from '@web3-react/network-connector'
-import { WalletConnectConnector } from '@web3-react/walletconnect-connector'
-import { WalletLinkConnector } from '@web3-react/walletlink-connector'
 import { useAppContext } from 'components/AppContextProvider'
-import { dappName, networks, networksByName, pollingInterval } from 'components/blockchain/config'
+import { networks, networksByName } from 'components/blockchain/config'
 import { ConnectionKind, Web3Context } from 'components/blockchain/web3Context'
 import { AppLink } from 'components/Links'
-import { LedgerAccountSelection } from 'components/withWallet/LedgerAccountSelection'
-import { TrezorAccountSelection } from 'components/withWallet/TrezorAccountSelection'
 import { useObservable } from 'helpers/observableHook'
 import { WithChildren } from 'helpers/types'
-import { useRedirect } from 'helpers/useRedirect'
 import { useTranslation } from 'i18n'
-import { LedgerConnector } from 'ledgerConnector/ledgerConnector'
 import { mapValues } from 'lodash'
-import { useRouter } from 'next/router'
-import React, { useEffect, useState } from 'react'
-import { combineLatest, Observable } from 'rxjs'
+import React, { useEffect } from 'react'
 import { Alert, Box, Button, Flex, Grid, Heading, Spinner, Text } from 'theme-ui'
-import { TrezorConnector } from 'trezorConnector/trezorConnector'
 import { assert } from 'ts-essentials'
-import Web3 from 'web3'
+import { Observable } from 'rxjs'
 
 export const SUCCESSFUL_CONNECTION = 'successfulConnection'
 
@@ -49,34 +40,6 @@ async function getConnector(connectorKind: ConnectionKind, network: number, opti
         throw new Error('Browser ethereum provider and URL network param do not match!')
       }
       return connector
-    case 'walletLink':
-      return new WalletLinkConnector({
-        url: rpcUrls[network],
-        appName: dappName,
-      })
-    case 'walletConnect':
-      return new WalletConnectConnector({
-        rpc: { [network]: rpcUrls[network] },
-        bridge: 'https://bridge.walletconnect.org',
-        qrcode: true,
-        pollingInterval,
-      })
-    case 'trezor':
-      return new TrezorConnector({
-        chainId: network,
-        url: rpcUrls[network],
-        pollingInterval: pollingInterval,
-        manifestEmail: 'dummy@abc.xyz',
-        manifestAppUrl: 'http://localhost:1234',
-        config: { networkId: network },
-      })
-    case 'ledger':
-      return new LedgerConnector({
-        ...options,
-        chainId: network,
-        url: rpcUrls[network],
-        pollingInterval: pollingInterval,
-      })
     case 'network':
       return new NetworkConnector({
         urls: { [network]: networks[network].infuraUrl },
@@ -92,10 +55,6 @@ interface SupportedWallet {
 
 const SUPPORTED_WALLETS: SupportedWallet[] = [
   { iconName: 'metamask_color', connectionKind: 'injected' },
-  { iconName: 'wallet_connect_color', connectionKind: 'walletConnect' },
-  { iconName: 'coinbase_color', connectionKind: 'walletLink' },
-  { iconName: 'trezor', connectionKind: 'trezor' },
-  { iconName: 'ledger', connectionKind: 'ledger' },
 ]
 
 interface ConnectWalletButton {
@@ -130,11 +89,7 @@ function connect(
   options: any = {},
 ) {
   return async () => {
-    if (
-      web3Context?.status === 'error' ||
-      web3Context?.status === 'notConnected' ||
-      web3Context?.status === 'connectedReadonly'
-    ) {
+    if (web3Context?.status === 'error' || web3Context?.status === 'notConnected') {
       try {
         web3Context.connect(await getConnector(connectorKind, chainId, options), connectorKind)
       } catch (e) {
@@ -178,14 +133,6 @@ export function getConnectionKindMessage(connectionKind: ConnectionKind) {
   switch (connectionKind) {
     case 'injected':
       return getInjectedWalletKind()
-    case 'walletConnect':
-      return 'WalletConnect'
-    case 'walletLink':
-      return 'Coinbase wallet'
-    case 'trezor':
-      return 'Trezor'
-    case 'ledger':
-      return 'Ledger'
     case 'network':
       return 'Network'
   }
@@ -195,64 +142,10 @@ export function ConnectWallet() {
   const { web3Context$ } = useAppContext()
   const web3Context = useObservable(web3Context$)
   const { t } = useTranslation('common')
-  const [connectingLedger, setConnectingLedger] = useState(false)
-
-  useEffect(() => {
-    if (web3Context?.status === 'connectedReadonly' || web3Context?.status === 'connected') {
-      setConnectingLedger(false)
-    }
-  }, [web3Context])
 
   if (!web3Context) {
     return null
   }
-
-  if (
-    connectingLedger &&
-    (web3Context.status === 'notConnected' ||
-      web3Context.status === 'error' ||
-      web3Context.status === 'connectedReadonly' ||
-      web3Context.status === 'connecting' ||
-      web3Context.status === 'connectingHWSelectAccount')
-  ) {
-    return (
-      <LedgerAccountSelection
-        cancel={() => {
-          if (web3Context.status === 'connectingHWSelectAccount') {
-            web3Context.deactivate()
-            return setConnectingLedger(false)
-          }
-          return setConnectingLedger(false)
-        }}
-        chainId={getNetwork()}
-        web3Context={web3Context}
-      />
-    )
-  }
-
-  if (
-    (web3Context.status === 'connecting' || web3Context.status === 'connectingHWSelectAccount') &&
-    web3Context.connectionKind === 'trezor'
-  ) {
-    return (
-      <TrezorAccountSelection
-        cancel={() => {
-          if (web3Context.status === 'connectingHWSelectAccount') {
-            web3Context.deactivate()
-          }
-        }}
-        web3Context={web3Context}
-      />
-    )
-  }
-
-  if (web3Context.status === 'connecting' && web3Context.connectionKind === 'network') {
-    return <Box>{t('readonly-user-connecting')}</Box>
-  }
-
-  // if (web3Context.status === 'connected' || web3Context.status === 'connectedReadonly') {
-  //   return children
-  // }
 
   return (
     <Grid
@@ -297,8 +190,6 @@ export function ConnectWallet() {
                 connect:
                   web3Context.status === 'connecting'
                     ? undefined
-                    : connectionKind === 'ledger'
-                    ? () => setConnectingLedger(true)
                     : connect(web3Context, connectionKind, getNetwork()),
               }}
             />
@@ -317,67 +208,46 @@ export function ConnectWallet() {
     </Grid>
   )
 }
-
-function autoConnect(
-  web3Context$: Observable<Web3Context>,
-  readOnlyAccount$: Observable<string | undefined>,
-  defaultChainId: number,
-) {
+function autoConnect(web3Context$: Observable<Web3Context>, defaultChainId: number) {
   let firstTime = true
 
-  const subscription = combineLatest(web3Context$, readOnlyAccount$).subscribe(
-    async ([web3Context, readOnlyAccount]) => {
-      try {
-        const serialized = localStorage.getItem(SUCCESSFUL_CONNECTION)
-        if (firstTime && web3Context.status === 'notConnected' && serialized) {
-          const connectionKind = JSON.parse(serialized) as ConnectionKind
-          if (connectionKind !== 'ledger' && connectionKind !== 'trezor') {
-            console.log('autoConnecting from localStorage', connectionKind, defaultChainId)
-            const connector = await getConnector(connectionKind, defaultChainId)
-            web3Context.connect(connector, connectionKind)
-          }
-        } else if (web3Context.status === 'notConnected') {
-          if (readOnlyAccount) {
-            console.log('autoConnecting readonly', defaultChainId)
-            web3Context.connect(await getConnector('network', defaultChainId), 'network')
-          }
-        }
-        if (web3Context.status === 'connected') {
-          localStorage.setItem(SUCCESSFUL_CONNECTION, JSON.stringify(web3Context.connectionKind))
-        } else {
-          localStorage.removeItem(SUCCESSFUL_CONNECTION)
-        }
-      } catch (e) {
-        if (web3Context.status === 'notConnected' && readOnlyAccount) {
-          console.log('falling back to autoConnecting readonly', defaultChainId)
-          web3Context.connect(await getConnector('network', defaultChainId), 'network')
-        }
-      } finally {
-        firstTime = false
+  const subscription = web3Context$.subscribe(async (web3Context) => {
+    try {
+      const serialized = localStorage.getItem(SUCCESSFUL_CONNECTION)
+      if (firstTime && web3Context.status === 'notConnected' && serialized) {
+        const connectionKind = JSON.parse(serialized) as ConnectionKind
+        console.log('autoConnecting from localStorage', connectionKind, defaultChainId)
+        const connector = await getConnector(connectionKind, defaultChainId)
+        web3Context.connect(connector, connectionKind)
+      } else if (web3Context.status === 'notConnected') {
+        // if (readOnlyAccount) {
+        //   console.log('autoConnecting readonly', defaultChainId)
+        //   web3Context.connect(await getConnector('network', defaultChainId), 'network')
+        // }
       }
-    },
-  )
+      if (web3Context.status === 'connected') {
+        localStorage.setItem(SUCCESSFUL_CONNECTION, JSON.stringify(web3Context.connectionKind))
+      } else {
+        localStorage.removeItem(SUCCESSFUL_CONNECTION)
+      }
+    } catch (e) {
+      if (web3Context.status === 'notConnected') {
+        console.log('falling back to autoConnecting readonly', defaultChainId)
+      }
+    } finally {
+      firstTime = false
+    }
+  })
   return () => {
     subscription.unsubscribe()
   }
 }
 
 export function WithConnection({ children }: WithChildren) {
-  const router = useRouter()
-  const { web3Context$, readonlyAccount$ } = useAppContext()
-  const { address } = router.query as { address: string; network: string }
-  const { push } = useRedirect()
+  const { web3Context$ } = useAppContext()
+  // const { address } = router.query as { address: string; network: string }
 
-  useEffect(() => {
-    if (Web3.utils.isAddress(address)) {
-      readonlyAccount$.next(address)
-    } else {
-      push('/connect')
-    }
-    return () => readonlyAccount$.next(undefined)
-  }, [address])
-
-  useEffect(() => autoConnect(web3Context$, readonlyAccount$, getNetwork()), [])
+  //useEffect(() => autoConnect(web3Context$, getNetwork()), [])
 
   return children
 }

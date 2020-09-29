@@ -22,21 +22,25 @@ const config = {
 }[env]
 
 export function mixpanelInit() {
-  if (config.mixpanel.config.debug) {
-    console.debug(`[Mixpanel] Tracking initialized for ${env} env using ${config.mixpanel.token}`)
+  if (env === 'prod') {
+    if (config.mixpanel.config.debug) {
+      console.debug(`[Mixpanel] Tracking initialized for ${env} env using ${config.mixpanel.token}`)
+    }
+    mixpanel.init(config.mixpanel.token, config.mixpanel.config)
+    mixpanel.track('Pageview', { product: 'oacas' })
   }
-  mixpanel.init(config.mixpanel.token, config.mixpanel.config)
-  mixpanel.track('Pageview', { product: 'oacas' })
 }
 
 export function mixpanelIdentify(id: string, props: any) {
-  // @ts-ignore
-  if (!mixpanel.config) return
-  console.debug(
-    `[Mixpanel] Identifying as ${id} ${
-      props && props.walletType ? `using wallet ${props.walletType}` : ''
-    }`,
-  )
-  mixpanel.identify(id.toLowerCase())
-  if (props) mixpanel.people.set(props)
+  if (env === 'prod') {
+    // @ts-ignore
+    if (!mixpanel.config) return
+    console.debug(
+      `[Mixpanel] Identifying as ${id} ${
+        props && props.walletType ? `using wallet ${props.walletType}` : ''
+      }`,
+    )
+    mixpanel.identify(id.toLowerCase())
+    if (props) mixpanel.people.set(props)
+  }
 }

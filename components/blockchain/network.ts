@@ -1,10 +1,6 @@
 // tslint:disable:no-console
 import BigNumber from 'bignumber.js'
-import {
-  Web3Context,
-  Web3ContextConnected,
-  Web3ContextConnectedReadonly,
-} from 'components/blockchain/web3Context'
+import { Web3Context, Web3ContextConnected } from 'components/blockchain/web3Context'
 import { memoize } from 'lodash'
 import { bindNodeCallback, combineLatest, concat, interval, Observable } from 'rxjs'
 import {
@@ -30,37 +26,18 @@ interface WithContractMethod {
   contract: (desc: ContractDesc) => any
 }
 
-export type ContextConnectedReadOnly = NetworkConfig &
-  Web3ContextConnectedReadonly &
-  WithContractMethod
+export type ContextConnected = NetworkConfig & Web3ContextConnected & WithContractMethod
 
-export type ContextConnected = NetworkConfig &
-  Web3ContextConnected &
-  WithContractMethod & { readonly: boolean }
-
-export type Context = ContextConnected | ContextConnectedReadOnly
+export type Context = ContextConnected
 
 export function createContext$<A>(
-  web3ContextConnected$: Observable<Web3ContextConnected | Web3ContextConnectedReadonly>,
-  readonlyAccount$: Observable<string | undefined>,
+  web3ContextConnected$: Observable<Web3ContextConnected>,
 ): Observable<Context> {
-  return combineLatest(web3ContextConnected$, readonlyAccount$).pipe(
-    map(([web3Context, readonlyAccount]) => {
+  return web3ContextConnected$.pipe(
+    map((web3Context) => {
       return {
         ...networks[web3Context.chainId],
         ...web3Context,
-        ...((web3Context.status === 'connectedReadonly' && readonlyAccount) ||
-        (web3Context.status === 'connected' &&
-          readonlyAccount &&
-          web3Context.account !== readonlyAccount)
-          ? {
-              status: 'connected',
-              account: readonlyAccount,
-              readonly: 'true',
-            }
-          : status === 'connected'
-          ? { readonly: false }
-          : {}),
         contract: (c: ContractDesc) => contract(web3Context.web3, c),
       }
     }),
@@ -78,7 +55,7 @@ export function compareBigNumber(a1: BigNumber, a2: BigNumber): boolean {
 }
 
 export function createOnEveryBlock$<A>(
-  web3Context$: Observable<Web3ContextConnected | Web3ContextConnectedReadonly>,
+  web3Context$: Observable<Web3ContextConnected>,
 ): [Observable<number>, EveryBlockFunction$] {
   const onEveryBlock$ = combineLatest(web3Context$, every5Seconds$).pipe(
     switchMap(([{ web3 }]) => bindNodeCallback(web3.eth.getBlockNumber)()),
@@ -101,9 +78,9 @@ export function createOnEveryBlock$<A>(
 }
 
 export function createWeb3ContextConnected$(web3Context$: Observable<Web3Context>) {
-  return web3Context$.pipe(
-    filter(({ status }) => status === 'connected' || status === 'connectedReadonly'),
-  ) as Observable<Web3ContextConnected | Web3ContextConnectedReadonly>
+  return web3Context$.pipe(filter(({ status }) => status === 'connected')) as Observable<
+    Web3ContextConnected
+  >
 }
 
 export function createAccount$(web3Context$: Observable<Web3Context>) {

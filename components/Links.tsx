@@ -57,17 +57,17 @@ function InternalLink({
   } = useRouter()
   let readOnlyHref = href
   let readOnlyAs = as
-
-  if (isAppContextAvailable && withAccountPrefix) {
-    const { readonlyAccount$ } = useAppContext()
-    const readonlyAccount = useObservable(readonlyAccount$)
-
-    if (readonlyAccount && href.startsWith('/')) {
-      readOnlyHref = `/[address]${href}`
-      readOnlyAs = `/${readonlyAccount}${as || href}`
-    }
-  }
-
+  //
+  //   if (isAppContextAvailable && withAccountPrefix) {
+  //     const { readonlyAccount$ } = useAppContext()
+  //     const readonlyAccount = useObservable(readonlyAccount$)
+  //
+  //     if (readonlyAccount && href.startsWith('/')) {
+  //       readOnlyHref = `/[address]${href}`
+  //       readOnlyAs = `/${readonlyAccount}${as || href}`
+  //     }
+  //   }
+  //
   const actualHref =
     isAppContextAvailable && network
       ? { pathname: readOnlyHref as string, query: { network } }

@@ -11,7 +11,7 @@ export default function ConnectPage() {
   useEffect(() => {
     const subscription = web3Context$.subscribe((web3Context) => {
       if (web3Context.status === 'connected') {
-        replace(`/[address]/dashboard`, `/${web3Context.account}/dashboard`)
+        replace(`/owner/[address]`, `/owner/${web3Context.account}`)
       }
     })
     return () => subscription.unsubscribe()

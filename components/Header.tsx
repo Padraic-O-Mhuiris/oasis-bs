@@ -3,15 +3,12 @@ import { Icon } from '@makerdao/dai-ui-icons'
 import { AccountButton } from 'components/account/Account'
 import { useAppContext } from 'components/AppContextProvider'
 import { AppLink, AppLinkProps } from 'components/Links'
-import { TransactionManager } from 'components/transactionManager/TransactionManagerView'
-import { formatAddress } from 'helpers/formatters/format'
 import { useObservable } from 'helpers/observableHook'
 import { WithChildren } from 'helpers/types'
-import { useReadonlyAccount } from 'helpers/useReadonlyAccount'
 import { useTranslation } from 'i18n'
 import React from 'react'
 import { TRANSITIONS } from 'theme'
-import { Alert, Box, Container, Flex, Text } from 'theme-ui'
+import { Box, Container, Flex, Text } from 'theme-ui'
 
 function Logo() {
   return (
@@ -93,31 +90,21 @@ export function AppHeader({
 }) {
   const { web3Context$ } = useAppContext()
   const web3Context = useObservable(web3Context$)
-  const { readonlyAccount, account } = useReadonlyAccount()
-  const { t } = useTranslation()
 
   return (
     <>
       <BasicHeader variant="appContainer">
-        {web3Context?.status === 'connected' || web3Context?.status === 'connectedReadonly' ? (
+        {web3Context?.status === 'connected' ? (
           <>
             {CustomLogoWithBack ? <CustomLogoWithBack /> : <LogoWithBack {...{ backLink }} />}
             <Flex sx={{ maxWidth: 'calc(100% - 40px)', justifyContent: 'flex-end' }}>
-              {/* Transaction Manager is always visible for proper animation of sliding. Otherwise first slide in of notification is instant rather than animated */}
-              <TransactionManager />
               <AccountButton />
             </Flex>
           </>
-        ) : null}
+        ) : (
+          <AppLink href="/connect">Connect</AppLink>
+        )}
       </BasicHeader>
-      {readonlyAccount && account && (
-        <Container variant="appContainer" mb={4} mt={-3}>
-          <Alert variant="readonly">
-            {`${t('readonly-alert-message')} `}
-            <Text sx={{ fontWeight: 'semiBold', display: 'inline' }}>{formatAddress(account)}</Text>
-          </Alert>
-        </Container>
-      )}
     </>
   )
 }

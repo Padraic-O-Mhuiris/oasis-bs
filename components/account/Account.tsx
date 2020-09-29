@@ -2,9 +2,7 @@
 import { Icon } from '@makerdao/dai-ui-icons'
 import { useAppContext } from 'components/AppContextProvider'
 import { getConnectionKindMessage } from 'components/connectWallet/ConnectWallet'
-import { AppLink } from 'components/Links'
 import { Modal, ModalCloseIcon } from 'components/Modal'
-import { RecentTransactions } from 'components/transactionManager/TransactionManagerModalView'
 import { formatAddress } from 'helpers/formatters/format'
 import { ModalProps, useModal } from 'helpers/modalHook'
 import { useObservable } from 'helpers/observableHook'
@@ -33,25 +31,15 @@ export function NetworkIndicator({ chainId, address }: { chainId: number; addres
 }
 
 export function AccountButton() {
-  const { web3Context$, transactionManager$ } = useAppContext()
+  const { web3Context$ } = useAppContext()
   const web3Context = useObservable(web3Context$)
   const openModal = useModal()
-  const transactionManager = useObservable(transactionManager$)
-  const { t } = useTranslation('common')
 
-  if (web3Context?.status === 'connected' && !transactionManager?.notificationTransaction) {
+  if (web3Context?.status === 'connected') {
     return (
       <Button variant="outline" sx={{ fontWeight: 'body' }} onClick={() => openModal(AccountModal)}>
         <NetworkIndicator chainId={web3Context.chainId} address={web3Context.account} />
       </Button>
-    )
-  }
-
-  if (web3Context?.status === 'connectedReadonly') {
-    return (
-      <AppLink href="/connect" withAccountPrefix={false}>
-        <Button variant="outline">{t('connect-wallet-button')}</Button>
-      </AppLink>
     )
   }
 
@@ -151,7 +139,6 @@ export function AccountModal({ close }: ModalProps) {
             </Grid>
           </Card>
         </Box>
-        <RecentTransactions />
       </Grid>
     </Modal>
   )

@@ -1,4 +1,4 @@
-import { CacheProvider, Global } from '@emotion/core'
+import { Global } from '@emotion/core'
 // @ts-ignore
 import { MDXProvider } from '@mdx-js/react'
 import { Web3ReactProvider } from '@web3-react/core'
@@ -7,19 +7,13 @@ import { SetupWeb3Context } from 'components/blockchain/web3Context'
 import { HeadTags } from 'components/HeadTags'
 import { AppLayout, AppLayoutProps, MarketingLayoutProps } from 'components/Layouts'
 // @ts-ignore
-import { cache } from 'emotion'
-import { ModalProvider } from 'helpers/modalHook'
 import { appWithTranslation } from 'i18n'
 import { AppProps } from 'next/app'
-import { useRouter } from 'next/router'
-import React, { useEffect } from 'react'
+import React from 'react'
 import { landingTheme, theme } from 'theme'
 // @ts-ignore
 import { components, ThemeProvider } from 'theme-ui'
 import Web3 from 'web3'
-
-import { trackingEvents } from '../components/analytics/analytics'
-import { mixpanelInit } from '../components/analytics/mixpanel'
 
 function getLibrary(provider: any): Web3 {
   return new Web3(provider)
@@ -70,46 +64,27 @@ interface CustomAppProps {
   }
 }
 
-mixpanelInit()
+//mixpanelInit()
 
 function App({ Component, pageProps }: AppProps & CustomAppProps) {
   const Layout = Component.layout || AppLayout
   const layoutProps = Component.layoutProps
   const pageTheme = Component.theme === 'Landing' ? landingTheme : theme
-
-  const router = useRouter()
-
-  useEffect(() => {
-    const handleRouteChange = (url: string) => {
-      trackingEvents.pageView(url)
-    }
-
-    router.events.on('routeChangeComplete', handleRouteChange)
-
-    return () => {
-      router.events.off('routeChangeComplete', handleRouteChange)
-    }
-  }, [])
-
   return (
     <ThemeProvider theme={pageTheme}>
-      <CacheProvider value={cache}>
-        <MDXProvider {...{ components }}>
-          <Global styles={globalStyles} />
-          <Web3ReactProvider {...{ getLibrary }}>
-            <AppContextProvider>
-              <ModalProvider>
-                <HeadTags />
-                <SetupWeb3Context>
-                  <Layout {...layoutProps}>
-                    <Component {...pageProps} />
-                  </Layout>
-                </SetupWeb3Context>
-              </ModalProvider>
-            </AppContextProvider>
-          </Web3ReactProvider>
-        </MDXProvider>
-      </CacheProvider>
+      <MDXProvider {...{ components }}>
+        <Global styles={globalStyles} />
+        <Web3ReactProvider {...{ getLibrary }}>
+          <AppContextProvider>
+            <HeadTags />
+            <SetupWeb3Context>
+              <Layout {...layoutProps}>
+                <Component {...pageProps} />
+              </Layout>
+            </SetupWeb3Context>
+          </AppContextProvider>
+        </Web3ReactProvider>
+      </MDXProvider>
     </ThemeProvider>
   )
 }
