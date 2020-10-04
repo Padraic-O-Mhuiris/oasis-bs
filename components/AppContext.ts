@@ -60,6 +60,7 @@ import { getWyreRates$ } from './dashboard/onramp/wyre'
 import { createProxyAddress$ } from './dashboard/proxy'
 import { createTokenSend$ } from './dashboard/tokenSend'
 import { pluginDevModeHelpers } from './devModeHelpers'
+import { createAddressContext$ } from './blockchain/addressContext'
 
 export type TxData =
   | ApproveData
@@ -98,35 +99,25 @@ function createTxHelpers$(
 }
 
 export function setupAppContext() {
-  const [web3Context$, setupWeb3Context$] = createWeb3Context$()
+  const [
+    web3AccountContext$,
+    web3AccountContextConnected$,
+    setupWeb3AccountContext$,
+    web3NetworkContext$,
+    web3NetworkContextConnected$,
+    setupWeb3NetworkContext$,
+  ] = createWeb3Context$()
 
-  const account$ = createAccount$(web3Context$)
-  const initializedAccount$ = createInitializedAccount$(account$)
+  const [onEveryBlock$, everyBlock$] = createOnEveryBlock$(web3NetworkContext$)
 
-  web3Context$.subscribe((web3Context) =>
-    console.log(
-      'web3Context:',
-      web3Context.status,
-      (web3Context as any).chainId,
-      (web3Context as any).account,
-    ),
-  )
+  const context$ = createContext$(web3NetworkContextConnected$)
 
-  const web3ContextConnected$ = createWeb3ContextConnected$(web3Context$)
-
-  const [onEveryBlock$, everyBlock$] = createOnEveryBlock$(web3ContextConnected$)
-
-  const context$ = createContext$(web3ContextConnected$)
-
-  const connectedContext$ = context$.pipe(
-    filter(({ status }) => status === 'connected'),
-    shareReplay(1),
-  ) as Observable<ContextConnected>
-
+  //web3NetworkContext$.subscribe(console.log)
   return {
-    web3Context$,
-    setupWeb3Context$,
-    initializedAccount$,
+    web3AccountContext$,
+    setupWeb3AccountContext$,
+    web3NetworkContext$,
+    setupWeb3NetworkContext$,
     context$,
   }
 }

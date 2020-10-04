@@ -31,14 +31,17 @@ export function NetworkIndicator({ chainId, address }: { chainId: number; addres
 }
 
 export function AccountButton() {
-  const { web3Context$ } = useAppContext()
-  const web3Context = useObservable(web3Context$)
+  const { web3AccountContext$ } = useAppContext()
+  const web3AccountContext = useObservable(web3AccountContext$)
   const openModal = useModal()
 
-  if (web3Context?.status === 'connected') {
+  if (web3AccountContext?.status === 'connected') {
     return (
       <Button variant="outline" sx={{ fontWeight: 'body' }} onClick={() => openModal(AccountModal)}>
-        <NetworkIndicator chainId={web3Context.chainId} address={web3Context.account} />
+        <NetworkIndicator
+          chainId={web3AccountContext.chainId}
+          address={web3AccountContext.account}
+        />
       </Button>
     )
   }
@@ -47,8 +50,8 @@ export function AccountButton() {
 }
 
 export function AccountModal({ close }: ModalProps) {
-  const { web3Context$ } = useAppContext()
-  const web3Context = useObservable(web3Context$)
+  const { web3AccountContext$ } = useAppContext()
+  const web3AccountContext = useObservable(web3AccountContext$)
   const clipboardContentRef = useRef<HTMLTextAreaElement>(null)
   const { t } = useTranslation('common')
   const { replace } = useRedirect()
@@ -73,9 +76,9 @@ export function AccountModal({ close }: ModalProps) {
     }
   }
 
-  if (web3Context?.status !== 'connected') return null
+  if (web3AccountContext?.status !== 'connected') return null
 
-  const { account, connectionKind } = web3Context
+  const { account, connectionKind } = web3AccountContext
 
   return (
     <Modal>

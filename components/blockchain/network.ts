@@ -1,6 +1,6 @@
 // tslint:disable:no-console
 import BigNumber from 'bignumber.js'
-import { Web3Context, Web3ContextConnected } from 'components/blockchain/web3Context'
+import { Web3NetworkContextConnected, Web3NetworkContext } from 'components/blockchain/web3Context'
 import { memoize } from 'lodash'
 import { bindNodeCallback, combineLatest, concat, interval, Observable } from 'rxjs'
 import {
@@ -26,19 +26,19 @@ interface WithContractMethod {
   contract: (desc: ContractDesc) => any
 }
 
-export type ContextConnected = NetworkConfig & Web3ContextConnected & WithContractMethod
+export type ContextConnected = NetworkConfig & Web3NetworkContextConnected & WithContractMethod
 
 export type Context = ContextConnected
 
 export function createContext$<A>(
-  web3ContextConnected$: Observable<Web3ContextConnected>,
+  web3NetworkContextConnected$: Observable<Web3NetworkContextConnected>,
 ): Observable<Context> {
-  return web3ContextConnected$.pipe(
-    map((web3Context) => {
+  return web3NetworkContextConnected$.pipe(
+    map((web3NetworkContext) => {
       return {
-        ...networks[web3Context.chainId],
-        ...web3Context,
-        contract: (c: ContractDesc) => contract(web3Context.web3, c),
+        ...networks[web3NetworkContext.chainId],
+        ...web3NetworkContext,
+        contract: (c: ContractDesc) => contract(web3NetworkContext.web3, c),
       }
     }),
     shareReplay(1),
@@ -55,9 +55,9 @@ export function compareBigNumber(a1: BigNumber, a2: BigNumber): boolean {
 }
 
 export function createOnEveryBlock$<A>(
-  web3Context$: Observable<Web3ContextConnected>,
+  web3NetworkContext$: Observable<Web3NetworkContext>,
 ): [Observable<number>, EveryBlockFunction$] {
-  const onEveryBlock$ = combineLatest(web3Context$, every5Seconds$).pipe(
+  const onEveryBlock$ = combineLatest(web3NetworkContext$, every5Seconds$).pipe(
     switchMap(([{ web3 }]) => bindNodeCallback(web3.eth.getBlockNumber)()),
     catchError((error, source) => {
       console.log(error)
@@ -75,18 +75,6 @@ export function createOnEveryBlock$<A>(
   }
 
   return [onEveryBlock$, everyBlock$]
-}
-
-export function createWeb3ContextConnected$(web3Context$: Observable<Web3Context>) {
-  return web3Context$.pipe(filter(({ status }) => status === 'connected')) as Observable<
-    Web3ContextConnected
-  >
-}
-
-export function createAccount$(web3Context$: Observable<Web3Context>) {
-  return web3Context$.pipe(
-    map((status) => (status.status === 'connected' ? status.account : undefined)),
-  )
 }
 
 export function createInitializedAccount$(account$: Observable<string | undefined>) {

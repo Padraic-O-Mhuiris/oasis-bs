@@ -1,9 +1,9 @@
 import { Global } from '@emotion/core'
 // @ts-ignore
 import { MDXProvider } from '@mdx-js/react'
-import { Web3ReactProvider } from '@web3-react/core'
+import { createWeb3ReactRoot, getWeb3ReactContext } from '@web3-react/core'
 import { AppContextProvider } from 'components/AppContextProvider'
-import { SetupWeb3Context } from 'components/blockchain/web3Context'
+import { SetupWeb3Context, Web3ContextType } from 'components/blockchain/web3Context'
 import { HeadTags } from 'components/HeadTags'
 import { AppLayout, AppLayoutProps, MarketingLayoutProps } from 'components/Layouts'
 // @ts-ignore
@@ -66,24 +66,41 @@ interface CustomAppProps {
 
 //mixpanelInit()
 
+function createWeb3Provider(key) {
+  let provider
+  try {
+    provider = createWeb3ReactRoot(key)
+  } catch (e) {
+    console.log(`Web3ReactRoot: ${key} already exists`)
+    provider = getWeb3ReactContext(key).Provider
+  }
+  return provider
+}
+
+const Web3AccountProvider = createWeb3Provider(Web3ContextType.Account)
+const Web3NetworkProvider = createWeb3Provider(Web3ContextType.Network)
+
 function App({ Component, pageProps }: AppProps & CustomAppProps) {
   const Layout = Component.layout || AppLayout
   const layoutProps = Component.layoutProps
   const pageTheme = Component.theme === 'Landing' ? landingTheme : theme
+
   return (
     <ThemeProvider theme={pageTheme}>
       <MDXProvider {...{ components }}>
         <Global styles={globalStyles} />
-        <Web3ReactProvider {...{ getLibrary }}>
-          <AppContextProvider>
-            <HeadTags />
-            <SetupWeb3Context>
-              <Layout {...layoutProps}>
-                <Component {...pageProps} />
-              </Layout>
-            </SetupWeb3Context>
-          </AppContextProvider>
-        </Web3ReactProvider>
+        <Web3AccountProvider {...{ getLibrary }}>
+          <Web3NetworkProvider {...{ getLibrary }}>
+            <AppContextProvider>
+              <HeadTags />
+              <SetupWeb3Context>
+                <Layout {...layoutProps}>
+                  <Component {...pageProps} />
+                </Layout>
+              </SetupWeb3Context>
+            </AppContextProvider>
+          </Web3NetworkProvider>
+        </Web3AccountProvider>
       </MDXProvider>
     </ThemeProvider>
   )

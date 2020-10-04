@@ -5,13 +5,13 @@ import { useRedirect } from 'helpers/useRedirect'
 import React, { useEffect } from 'react'
 
 export default function ConnectPage() {
-  const { web3Context$ } = useAppContext()
+  const { web3AccountContext$ } = useAppContext()
   const { replace } = useRedirect()
 
   useEffect(() => {
-    const subscription = web3Context$.subscribe((web3Context) => {
-      if (web3Context.status === 'connected') {
-        replace(`/owner/[address]`, `/owner/${web3Context.account}`)
+    const subscription = web3AccountContext$.subscribe((web3AccountContext) => {
+      if (web3AccountContext.status === 'connected') {
+        replace(`/owner/${web3AccountContext.account}`)
       }
     })
     return () => subscription.unsubscribe()

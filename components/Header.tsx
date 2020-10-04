@@ -88,13 +88,13 @@ export function AppHeader({
   backLink?: AppLinkProps
   CustomLogoWithBack?: () => JSX.Element
 }) {
-  const { web3Context$ } = useAppContext()
-  const web3Context = useObservable(web3Context$)
+  const { web3AccountContext$ } = useAppContext()
+  const web3AccountContext = useObservable(web3AccountContext$)
 
   return (
     <>
       <BasicHeader variant="appContainer">
-        {web3Context?.status === 'connected' ? (
+        {web3AccountContext?.status === 'connected' ? (
           <>
             {CustomLogoWithBack ? <CustomLogoWithBack /> : <LogoWithBack {...{ backLink }} />}
             <Flex sx={{ maxWidth: 'calc(100% - 40px)', justifyContent: 'flex-end' }}>
