@@ -75,7 +75,6 @@
     "moment": "^2.26.0",
     "morgan": "^1.10.0",
     "next": "^9.5.3",
-    "next-i18next": "^4.4.2",
     "node-fetch": "^2.6.0",
     "normalize.css": "^8.0.1",
     "nyc": "^15.1.0",

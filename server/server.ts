@@ -10,7 +10,6 @@ import next from 'next'
 import { join } from 'path'
 import { parse } from 'url'
 
-import nextI18next from '../i18n'
 import { getApp } from './app'
 import { configSchema } from './config'
 
@@ -29,15 +28,13 @@ async function main() {
   })
 
   await nextApp.prepare()
-  await nextI18next.initPromise
   const app = getApp(config, { nextHandler: handleByNext as any })
 
   // Render landing pages for paths containing supported languages (e.g. /en /es)
   app.use((req: any, res: any, next: any): any => {
     const parsedUrl = parse(req.url, true)
     const { pathname, query } = parsedUrl
-    if (pathname && nextI18next.config.allLanguages.includes(pathname.substr(1)))
-      return nextApp.render(req, res, '/', query)
+    if (pathname) return nextApp.render(req, res, '/', query)
     next()
   })
 

@@ -2,9 +2,7 @@ import bodyParser from 'body-parser'
 import express from 'express'
 import basicAuth from 'express-basic-auth'
 import morgan from 'morgan'
-import nextI18NextMiddleware from 'next-i18next/middleware'
 
-import nextI18next from '../i18n'
 import { Config } from './config'
 
 export interface Dependencies {
@@ -13,7 +11,6 @@ export interface Dependencies {
 
 export function getApp(config: Config, { nextHandler }: Dependencies): express.Application {
   const app = express()
-  app.use(nextI18NextMiddleware(nextI18next))
   app.enable('trust proxy')
 
   if (config.httpPassword) {

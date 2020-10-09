@@ -5,7 +5,6 @@ import { useAppContext } from 'components/AppContextProvider'
 import { AppLink, AppLinkProps } from 'components/Links'
 import { useObservable } from 'helpers/observableHook'
 import { WithChildren } from 'helpers/types'
-import { useTranslation } from 'i18n'
 import React from 'react'
 import { TRANSITIONS } from 'theme'
 import { Box, Container, Flex, Text } from 'theme-ui'
@@ -110,13 +109,11 @@ export function AppHeader({
 }
 
 export function MarketingHeader() {
-  const { t } = useTranslation()
-
   return (
     <BasicHeader>
       <Logo />
       <AppLink href="/connect" variant="nav">
-        {t('connect-wallet-button')}
+        Connect Wallet
       </AppLink>
     </BasicHeader>
   )

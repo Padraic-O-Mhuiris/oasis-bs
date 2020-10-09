@@ -8,7 +8,6 @@ import { AccountKind, Web3AccountContext } from 'components/blockchain/web3Conte
 import { AppLink } from 'components/Links'
 import { useObservable } from 'helpers/observableHook'
 import { WithChildren } from 'helpers/types'
-import { useTranslation } from 'i18n'
 import { mapValues } from 'lodash'
 import React, { useEffect } from 'react'
 import { Alert, Box, Button, Flex, Grid, Heading, Spinner, Text } from 'theme-ui'
@@ -131,7 +130,6 @@ export function getConnectionKindMessage(connectionKind: AccountKind) {
 export function ConnectWallet() {
   const { web3AccountContext$ } = useAppContext()
   const web3AccountContext = useObservable(web3AccountContext$)
-  const { t } = useTranslation('common')
 
   if (!web3AccountContext) {
     console.log('no context')
@@ -154,12 +152,12 @@ export function ConnectWallet() {
         ((web3AccountContext.error instanceof UnsupportedChainIdError && (
           <Alert variant="error" sx={{ fontWeight: 'normal', borderRadius: 'large' }}>
             <Text sx={{ my: 1, ml: 2, fontSize: 3, lineHeight: 'body' }}>
-              {t('metamask-unsupported-network')}
+              metamask-unsupported-network
             </Text>
           </Alert>
         )) || (
           <Alert variant="error" sx={{ fontWeight: 'normal', borderRadius: 'large' }}>
-            <Text sx={{ my: 1, ml: 2, fontSize: 3, lineHeight: 'body' }}>{t('connect-error')}</Text>
+            <Text sx={{ my: 1, ml: 2, fontSize: 3, lineHeight: 'body' }}>{connect - error}</Text>
           </Alert>
         ))}
       <Grid columns={1}>
@@ -167,8 +165,6 @@ export function ConnectWallet() {
           const isConnecting =
             web3AccountContext.status === 'connecting' &&
             web3AccountContext.connectionKind === connectionKind
-          const connectionKindMsg = getConnectionKindMessage(connectionKind)
-          const descriptionTranslation = isConnecting ? 'connect-confirm' : 'connect-with'
 
           return (
             <ConnectWalletButton
@@ -176,9 +172,6 @@ export function ConnectWallet() {
                 key: connectionKind,
                 isConnecting,
                 iconName,
-                description: t(descriptionTranslation, {
-                  connectionKind: connectionKindMsg,
-                }),
                 connect:
                   web3AccountContext.status === 'connecting'
                     ? undefined
@@ -192,7 +185,7 @@ export function ConnectWallet() {
         <Text>{t('new-to-ethereum')}</Text>
         <AppLink href="/" withAccountPrefix={false}>
           <Flex sx={{ alignItems: 'center', justifyContent: 'center', color: 'onSecondary' }}>
-            <Text sx={{ color: 'onSecondary' }}>{t('learn-more-wallets')}</Text>
+            <Text sx={{ color: 'onSecondary' }}>learn-more-wallets</Text>
             <Icon name="increase" size="12px" sx={{ position: 'relative', ml: 1, top: '1px' }} />
           </Flex>
         </AppLink>

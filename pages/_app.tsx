@@ -7,12 +7,11 @@ import { SetupAddressContext } from 'components/blockchain/addressContext'
 import { HeadTags } from 'components/HeadTags'
 import { AppLayout, AppLayoutProps, MarketingLayoutProps } from 'components/Layouts'
 // @ts-ignore
-import { appWithTranslation } from 'i18n'
 import { AppProps } from 'next/app'
 import React from 'react'
 import { landingTheme, theme } from 'theme'
 // @ts-ignore
-import { components, ThemeProvider } from 'theme-ui'
+import { ThemeProvider } from 'theme-ui'
 import Web3 from 'web3'
 import { ModalProvider } from 'helpers/modalHook'
 

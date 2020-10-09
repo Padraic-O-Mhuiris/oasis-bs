@@ -1,12 +1,10 @@
 // @ts-ignore
 import { Icon } from '@makerdao/dai-ui-icons'
 import { useAppContext } from 'components/AppContextProvider'
-import { getConnectionKindMessage } from 'components/connectWallet/ConnectWallet'
 import { Modal, ModalCloseIcon } from 'components/Modal'
 import { formatAddress } from 'helpers/formatters/format'
 import { ModalProps, useModal } from 'helpers/modalHook'
 import { useObservable } from 'helpers/observableHook'
-import { useTranslation } from 'i18n'
 import React, { useRef } from 'react'
 // @ts-ignore
 import Jazzicon, { jsNumberForAddress } from 'react-jazzicon'
@@ -58,7 +56,6 @@ export function AccountModal({ close }: ModalProps) {
   const { web3AccountContext$ } = useAppContext()
   const web3AccountContext = useObservable(web3AccountContext$)
   const clipboardContentRef = useRef<HTMLTextAreaElement>(null)
-  const { t } = useTranslation('common')
 
   function disconnect() {
     if (web3AccountContext?.status === 'connected') {
@@ -98,11 +95,7 @@ export function AccountModal({ close }: ModalProps) {
           <Card variant="secondary">
             <Grid>
               <Flex sx={{ justifyContent: 'space-between' }}>
-                <Text sx={{ fontWeight: 'semiBold' }}>
-                  {t('connected-with', {
-                    connectionKind: getConnectionKindMessage(connectionKind),
-                  })}
-                </Text>
+                <Text sx={{ fontWeight: 'semiBold' }}>{connectionKind}</Text>
               </Flex>
               <Flex sx={{ alignItems: 'center' }}>
                 <Box mr={2}>
