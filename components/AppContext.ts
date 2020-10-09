@@ -1,77 +1,23 @@
-import { BigNumber } from 'bignumber.js'
-import {
-  call,
-  createSendTransaction,
-  createSendWithGasConstraints,
-  estimateGas,
-  EstimateGasFunction,
-  SendTransactionFunction,
-  TransactionDef,
-} from 'components/blockchain/calls/callsHelpers'
-import { createGasPrice$, tokenPricesInUSD$ } from 'components/blockchain/prices'
-import { createSend, SendFunction } from 'components/blockchain/transactions'
 import { createWeb3Context$ } from 'components/blockchain/web3Context'
-import { createOnrampOrders$, OnrampOrder } from 'components/dashboard/onrampOrders'
-import { createTransactionManager } from 'components/transactionManager/transactionManager'
-import { loadablifyLight } from 'helpers/loadable'
-import { zero } from 'helpers/zero'
-import { equals } from 'ramda'
-import { combineLatest, defer, Observable, of } from 'rxjs'
-import { filter, map, mergeMap, shareReplay, startWith, switchMap } from 'rxjs/operators'
+import { combineLatest, Observable } from 'rxjs'
+import { map, shareReplay, startWith, switchMap } from 'rxjs/operators'
 
-import { trackingEvents } from './analytics/analytics'
-import { mixpanelIdentify } from './analytics/mixpanel'
-import { createAllowance$, createTokenBalance$ } from './blockchain/erc20'
 import {
-  compareBigNumber,
-  ContextConnected,
-  createAccount$,
-  createContext$,
-  createInitializedAccount$,
   createOnEveryBlock$,
-  createWeb3ContextConnected$,
+  createNetworkContext$,
+  createAccountContext$,
 } from './blockchain/network'
-import { createDaiDeposit$ } from './dashboard/daiDeposit'
-import { createDashboard$ } from './dashboard/dashboard'
-import { SetOwnerData, SetupDSProxyData } from './dashboard/dsrPot/dsProxyCalls'
-import { createDsrDeposit$ } from './dashboard/dsrPot/dsrDeposit'
-import { createDsrHistory$ } from './dashboard/dsrPot/dsrHistory'
-import { createDsrCreation$ } from './dashboard/dsrPot/dsrPotCreate'
-import { createDsrWithdraw$ } from './dashboard/dsrPot/dsrWithdraw'
-import {
-  ApproveData,
-  DisapproveData,
-  TransferErc20Data,
-  TransferEthData,
-} from './dashboard/dsrPot/erc20Calls'
-import {
-  chi,
-  dsr,
-  DsrExitAllData,
-  DsrExitData,
-  DsrJoinData,
-  pie,
-} from './dashboard/dsrPot/potCalls'
-import { createErc20ExtEventsHistory$ } from './dashboard/erc20History'
-import { createEthTransferHistory$ } from './dashboard/ethTransferHistory'
-import { getMoonpayRates$ } from './dashboard/onramp/moonpay'
-import { createOnrampForm$ } from './dashboard/onramp/onrampForm'
-import { getWyreRates$ } from './dashboard/onramp/wyre'
-import { createProxyAddress$ } from './dashboard/proxy'
-import { createTokenSend$ } from './dashboard/tokenSend'
-import { pluginDevModeHelpers } from './devModeHelpers'
-import { createAddressContext$ } from './blockchain/addressContext'
+import { createAddress$ } from './blockchain/addressContext'
+import { EstimateGasFunction, SendTransactionFunction } from './blockchain/calls/callsHelpers'
+import { TxMetaKind } from './blockchain/calls/txMeta'
 
-export type TxData =
-  | ApproveData
-  | DisapproveData
-  | SetupDSProxyData
-  | SetOwnerData
-  | DsrJoinData
-  | DsrExitData
-  | DsrExitAllData
-  | TransferEthData
-  | TransferErc20Data
+export type TxData = Approve
+
+export type Approve = {
+  kind: TxMetaKind.approve
+  token: string
+  spender: string
+}
 
 export interface TxHelpers {
   send: SendTransactionFunction<TxData>
@@ -80,23 +26,6 @@ export interface TxHelpers {
 }
 
 export type TxHelpers$ = Observable<TxHelpers>
-
-function createTxHelpers$(
-  context$: Observable<ContextConnected>,
-  send: SendFunction<TxData>,
-  gasPrice$: Observable<BigNumber>,
-): TxHelpers$ {
-  return context$.pipe(
-    filter(({ status }) => status === 'connected'),
-    map((context) => ({
-      send: createSendTransaction(send, context),
-      sendWithGasEstimation: createSendWithGasConstraints(send, context, gasPrice$),
-      estimateGas: <B extends TxData>(def: TransactionDef<B>, args: B): Observable<number> => {
-        return estimateGas(context, def, args)
-      },
-    })),
-  )
-}
 
 export function setupAppContext() {
   const [
@@ -108,17 +37,37 @@ export function setupAppContext() {
     setupWeb3NetworkContext$,
   ] = createWeb3Context$()
 
-  const [onEveryBlock$, everyBlock$] = createOnEveryBlock$(web3NetworkContext$)
+  const [address$, changeAddress, setupAddress$] = createAddress$()
 
-  const context$ = createContext$(web3NetworkContextConnected$)
+  // const [, everyBlock$] = createOnEveryBlock$(web3NetworkContextConnected$)
 
-  //web3NetworkContext$.subscribe(console.log)
+  const networkContext$ = createNetworkContext$(web3NetworkContextConnected$)
+  const accountContext$ = createAccountContext$(web3AccountContextConnected$)
+
+  const account$ = web3AccountContext$.pipe(
+    map((status) => (status.status === 'connected' ? status.account : undefined)),
+  )
+
+  const chainId$ = web3NetworkContextConnected$.pipe(map(({ chainId }) => chainId))
+
+  const isReadOnlyMode$ = combineLatest(account$, address$).pipe(
+    map(([account, address]) => !account || account !== address),
+    startWith(true),
+  )
+
   return {
+    address$,
+    setupAddress$,
+    account$,
+    isReadOnlyMode$,
     web3AccountContext$,
     setupWeb3AccountContext$,
     web3NetworkContext$,
     setupWeb3NetworkContext$,
-    context$,
+    chainId$,
+    networkContext$,
+    accountContext$,
+    changeAddress,
   }
 }
 

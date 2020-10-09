@@ -1,5 +1,5 @@
 import { BigNumber } from 'bignumber.js'
-import { Context } from 'components/blockchain/network'
+import { NetworkContext } from 'components/blockchain/network'
 import { defer, from, Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
 
@@ -8,12 +8,12 @@ import { amountFromWei } from './utils'
 export const MIN_ALLOWANCE = new BigNumber('0xffffffffffffffffffffffffffffffff')
 
 export function createTokenBalance$(
-  { contract, tokens }: Context,
+  { contract, tokens }: NetworkContext,
   token: string,
-  account: string,
+  address: string,
 ): Observable<BigNumber> {
   return defer(() =>
-    from(contract(tokens[token]).methods.balanceOf(account).call()).pipe(
+    from(contract(tokens[token]).methods.balanceOf(address).call()).pipe(
       map((balance: any) => {
         return amountFromWei(new BigNumber(balance), token)
       }),
@@ -22,7 +22,7 @@ export function createTokenBalance$(
 }
 
 export function createAllowance$(
-  { tokens, contract }: Context,
+  { tokens, contract }: NetworkContext,
   token: string,
   owner: string,
   spender: string,

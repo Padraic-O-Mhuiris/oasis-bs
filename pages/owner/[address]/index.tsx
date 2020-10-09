@@ -1,19 +1,18 @@
 import { AppLink } from 'components/Links'
-import { useRouter } from 'next/router'
 import React from 'react'
 import { Grid, Text } from 'theme-ui'
+import { useAppContext } from 'components/AppContextProvider'
+import { useObservable } from 'helpers/observableHook'
 
 export default function Overview() {
-  const router = useRouter()
-  const { address } = router.query
-
+  const { account$, address$ } = useAppContext()
+  const account = useObservable(account$)
+  const address = useObservable(address$)
   return (
     <Grid>
-      <Text>{address}</Text>
+      <Text>NetworkAddress: {address}</Text>
+      {account ? <Text>AccountAddress: {account}</Text> : null}
       <AppLink href="/1">1</AppLink>
-      <AppLink href="/0x87e76b0a50efc20259cafE0530f75aE0e816aaF1">
-        0x87e76b0a50efc20259cafE0530f75aE0e816aaF1
-      </AppLink>
     </Grid>
   )
 }

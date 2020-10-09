@@ -30,7 +30,7 @@ import {
 } from 'rxjs/operators'
 import Web3 from 'web3'
 
-import { ContextConnected } from './network'
+import { AccountContext } from './network'
 
 export type TxMeta = {
   kind: any
@@ -147,7 +147,7 @@ type GetTransaction = NodeCallback<string, TransactionLike | null>
 
 function externalNonce2tx(
   onEveryBlock$: Observable<number>,
-  context$: Observable<ContextConnected>,
+  context$: Observable<AccountContext>,
   account: string,
 ): Observable<ExternalNonce2tx> {
   return combineLatest(context$, onEveryBlock$.pipe(first()), onEveryBlock$).pipe(
@@ -185,7 +185,7 @@ function externalNonce2tx(
 
 function txRebroadcastStatus(
   account: string,
-  context$: Observable<ContextConnected>,
+  context$: Observable<AccountContext>,
   onEveryBlock$: Observable<number>,
   { hash, nonce, input }: TransactionLike,
 ) {
@@ -207,7 +207,7 @@ function txRebroadcastStatus(
 
 function successOrFailure<A extends TxMeta>(
   onEveryBlock$: Observable<number>,
-  context$: Observable<ContextConnected>,
+  context$: Observable<AccountContext>,
   txHash: string,
   receipt: TransactionReceiptLike,
   common: TxState<A>,
@@ -250,7 +250,7 @@ function successOrFailure<A extends TxMeta>(
 function monitorTransaction<A extends TxMeta>(
   account: string,
   onEveryBlock$: Observable<number>,
-  context$: Observable<ContextConnected>,
+  context$: Observable<AccountContext>,
   web3: Web3,
   txHash: string,
   broadcastedAt: Date,
@@ -314,7 +314,7 @@ function monitorTransaction<A extends TxMeta>(
 
 function send<A extends TxMeta>(
   onEveryBlock$: Observable<number>,
-  context$: Observable<ContextConnected>,
+  context$: Observable<AccountContext>,
   change: (change: NewTransactionChange<A>) => void,
   account: string,
   networkId: string,
@@ -399,7 +399,7 @@ type TransactionsChange<A extends TxMeta> =
 
 function createTransactions$<A extends TxMeta>(
   account$: Observable<string>,
-  context$: Observable<ContextConnected>,
+  context$: Observable<AccountContext>,
   onEveryBlock$: Observable<number>,
 ): [Observable<TxState<A>[]>, (ch: TransactionsChange<A>) => void] {
   const transactionObserver: Subject<TransactionsChange<A>> = new Subject()
@@ -457,7 +457,7 @@ function createTransactions$<A extends TxMeta>(
 
 function sendCurried<A extends TxMeta>(
   onEveryBlock$: Observable<number>,
-  context$: Observable<ContextConnected>,
+  context$: Observable<AccountContext>,
   change: (change: NewTransactionChange<A>) => void,
 ) {
   return (account: string, networkId: string, meta: A, method: (...args: any[]) => any) =>
@@ -514,7 +514,7 @@ function conformTransactions<A extends TxMeta>(serializedTransactions: string): 
 function persist<A extends TxMeta>(
   account$: Observable<string>,
   onEveryBlock$: Observable<number>,
-  context$: Observable<ContextConnected>,
+  context$: Observable<AccountContext>,
   transactions$: Observable<TxState<A>[]>,
   change: (ch: TransactionsChange<A>) => void,
 ): Observable<TxState<A>[]> {
@@ -581,7 +581,7 @@ function persist<A extends TxMeta>(
 export function createSend<A extends TxMeta>(
   account$: Observable<string>,
   onEveryBlock$: Observable<number>,
-  context$: Observable<ContextConnected>,
+  context$: Observable<AccountContext>,
 ): [SendFunction<A>, Observable<TxState<A>[]>, (txNo: number) => void] {
   const [transactions$, change] = createTransactions$<A>(account$, context$, onEveryBlock$)
 

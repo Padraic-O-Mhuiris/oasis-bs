@@ -2,10 +2,9 @@
 import { Icon } from '@makerdao/dai-ui-icons'
 import { UnsupportedChainIdError } from '@web3-react/core'
 import { InjectedConnector } from '@web3-react/injected-connector'
-import { NetworkConnector } from '@web3-react/network-connector'
 import { useAppContext } from 'components/AppContextProvider'
 import { networks, networksByName } from 'components/blockchain/config'
-import { ConnectionKind, Web3Context, Web3AccountContext } from 'components/blockchain/web3Context'
+import { AccountKind, Web3AccountContext } from 'components/blockchain/web3Context'
 import { AppLink } from 'components/Links'
 import { useObservable } from 'helpers/observableHook'
 import { WithChildren } from 'helpers/types'
@@ -14,8 +13,6 @@ import { mapValues } from 'lodash'
 import React, { useEffect } from 'react'
 import { Alert, Box, Button, Flex, Grid, Heading, Spinner, Text } from 'theme-ui'
 import { assert } from 'ts-essentials'
-import { Observable } from 'rxjs'
-import { useRouter } from 'next/router'
 
 export const SUCCESSFUL_CONNECTION = 'successfulConnection'
 
@@ -28,7 +25,7 @@ export function getNetwork() {
   return Number.parseInt(networksByName[network].id)
 }
 
-async function getConnector(connectorKind: ConnectionKind, network: number, options: any = {}) {
+async function getConnector(connectorKind: AccountKind, network: number) {
   assert(rpcUrls[network], 'Unsupported chainId!')
   switch (connectorKind) {
     case 'injected':
@@ -37,21 +34,16 @@ async function getConnector(connectorKind: ConnectionKind, network: number, opti
       })
       const connectorChainId = Number.parseInt((await connector.getChainId()) as string)
       if (network !== connectorChainId) {
-        alert('Browser ethereum provider and URL network param do not match!')
+        alert('Browser ethereum providerand URL network param do not match!')
         throw new Error('Browser ethereum provider and URL network param do not match!')
       }
       return connector
-    case 'network':
-      return new NetworkConnector({
-        urls: { [network]: networks[network].infuraUrl },
-        defaultChainId: network,
-      })
   }
 }
 
 interface SupportedWallet {
   iconName: string
-  connectionKind: ConnectionKind
+  connectionKind: AccountKind
 }
 
 const SUPPORTED_WALLETS: SupportedWallet[] = [
@@ -84,15 +76,14 @@ function ConnectWalletButton({
 }
 
 function connect(
-  web3Context: Web3Context | undefined,
-  connectorKind: ConnectionKind,
+  web3AccountContext: Web3AccountContext | undefined,
+  connectorKind: AccountKind,
   chainId: number,
-  options: any = {},
 ) {
   return async () => {
-    if (web3Context?.status === 'error' || web3Context?.status === 'notConnected') {
+    if (web3AccountContext?.status === 'error' || web3AccountContext?.status === 'notConnected') {
       try {
-        web3Context.connect(await getConnector(connectorKind, chainId, options), connectorKind)
+        web3AccountContext.connect(await getConnector(connectorKind, chainId), connectorKind)
       } catch (e) {
         console.log(e)
       }
@@ -130,12 +121,10 @@ export function getInjectedWalletKind() {
   return 'Injected provider'
 }
 
-export function getConnectionKindMessage(connectionKind: ConnectionKind) {
+export function getConnectionKindMessage(connectionKind: AccountKind) {
   switch (connectionKind) {
     case 'injected':
       return getInjectedWalletKind()
-    case 'network':
-      return 'Network'
   }
 }
 
@@ -145,6 +134,7 @@ export function ConnectWallet() {
   const { t } = useTranslation('common')
 
   if (!web3AccountContext) {
+    console.log('no context')
     return null
   }
 
@@ -211,47 +201,42 @@ export function ConnectWallet() {
   )
 }
 
-function autoConnect(web3AccountContext$: Observable<Web3AccountContext>, defaultChainId: number) {
-  let firstTime = true
-
-  const subscription = web3AccountContext$.subscribe(async (web3AccountContext) => {
-    try {
-      const serialized = localStorage.getItem(SUCCESSFUL_CONNECTION)
-      if (firstTime && web3AccountContext.status === 'notConnected' && serialized) {
-        const connectionKind = JSON.parse(serialized) as ConnectionKind
-        console.log('autoConnecting from localStorage', connectionKind, defaultChainId)
-        const connector = await getConnector(connectionKind, defaultChainId)
-        web3AccountContext.connect(connector, connectionKind)
-      } else if (web3AccountContext.status === 'notConnected') {
-        // if (readOnlyAccount) {
-        //   console.log('autoConnecting readonly', defaultChainId)
-        //   web3AccountContext.connect(await getConnector('network', defaultChainId), 'network')
-        // }
-      }
-      if (web3AccountContext.status === 'connected') {
-        localStorage.setItem(
-          SUCCESSFUL_CONNECTION,
-          JSON.stringify(web3AccountContext.connectionKind),
-        )
-      } else {
-        localStorage.removeItem(SUCCESSFUL_CONNECTION)
-      }
-    } catch (e) {
-      if (web3AccountContext.status === 'notConnected') {
-        console.log('falling back to autoConnecting readonly', defaultChainId)
-      }
-    } finally {
-      firstTime = false
-    }
-  })
-  return () => {
-    subscription.unsubscribe()
-  }
-}
-
 export function WithConnection({ children }: WithChildren) {
-  const { web3AccountContext$ } = useAppContext()
-  const router = useRouter()
+  const { web3AccountContext$, chainId$ } = useAppContext()
+
+  const chainId = useObservable(chainId$)
+
+  useEffect(() => {
+    let subscription: any
+    if (chainId) {
+      let firstTime = true
+      subscription = web3AccountContext$.subscribe(async (web3AccountContext) => {
+        try {
+          const serialized = localStorage.getItem(SUCCESSFUL_CONNECTION)
+          if (firstTime && web3AccountContext.status === 'notConnected' && serialized) {
+            const connectionKind = JSON.parse(serialized) as AccountKind
+            if (connectionKind === 'injected') {
+              const connector = await getConnector(connectionKind, chainId)
+              console.log(connector)
+              web3AccountContext.connect(connector, connectionKind)
+            }
+          }
+          if (web3AccountContext.status === 'connected') {
+            localStorage.setItem(
+              SUCCESSFUL_CONNECTION,
+              JSON.stringify(web3AccountContext.connectionKind),
+            )
+          } else {
+            localStorage.removeItem(SUCCESSFUL_CONNECTION)
+          }
+        } catch (e) {
+        } finally {
+          firstTime = false
+        }
+      })
+    }
+    return () => subscription?.unsubscribe()
+  }, [chainId])
 
   return children
 }

@@ -3,35 +3,30 @@ import { SendFunction, TxMeta, TxState } from 'components/blockchain/transaction
 import { combineLatest, from, Observable } from 'rxjs'
 import { first, map, switchMap } from 'rxjs/internal/operators'
 
-import { Context, ContextConnected } from '../network'
+import { NetworkContext, AccountContext } from '../network'
 
 export const DEFAULT_GAS = 6000000
 
 export interface CallDef<A, R> {
-  call: (args: A, context: Context, account?: string) => any
-  prepareArgs: (args: A, context: Context, account?: string) => any[]
+  call: (args: A, context: NetworkContext, account?: string) => any
+  prepareArgs: (args: A, context: NetworkContext, account?: string) => any[]
   postprocess?: (r: any, a: A) => R
 }
 
 export interface TransactionDef<A extends TxMeta> {
-  call?: (args: A, context: ContextConnected, account?: string) => any
-  prepareArgs: (args: A, context: ContextConnected, account?: string) => any[]
+  call?: (args: A, context: AccountContext, account?: string) => any
+  prepareArgs: (args: A, context: AccountContext, account?: string) => any[]
   options?: (args: A) => any
 }
 
 export function call<D, R>(
-  context: ContextConnected,
+  context: NetworkContext,
   { call, prepareArgs, postprocess }: CallDef<D, R>,
 ) {
   return (args: D) => {
-    return from(
-      call(
-        args,
-        context,
-      )(...prepareArgs(args, context)).call(
-        context.status === 'connected' ? { from: context.account } : {},
-      ),
-    ).pipe(map((i) => (postprocess ? postprocess(i, args) : i))) as Observable<R>
+    return from(call(args, context)(...prepareArgs(args, context)).call()).pipe(
+      map((i) => (postprocess ? postprocess(i, args) : i)),
+    ) as Observable<R>
   }
 }
 
@@ -39,7 +34,7 @@ export function call<D, R>(
 // can be different when tx execute and it can take more gas
 const GAS_ESTIMATION_MULTIPLIER = 1.3
 export function estimateGas<A extends TxMeta>(
-  context: ContextConnected,
+  context: AccountContext,
   { call, prepareArgs, options }: TransactionDef<A>,
   args: A,
 ) {
@@ -79,7 +74,7 @@ export type EstimateGasFunction<A extends TxMeta> = <B extends A>(
 
 export function createSendTransaction<A extends TxMeta>(
   send: SendFunction<A>,
-  context: ContextConnected,
+  context: AccountContext,
 ): SendTransactionFunction<A> {
   return <B extends A>(
     { call, prepareArgs, options }: TransactionDef<B>,
@@ -105,7 +100,7 @@ export function createSendTransaction<A extends TxMeta>(
 
 export function createSendWithGasConstraints<A extends TxMeta>(
   send: SendFunction<A>,
-  context: ContextConnected,
+  context: AccountContext,
   gasPrice$: GasPrice$,
 ) {
   return <B extends A>(callData: TransactionDef<B>, args: B): Observable<TxState<B>> => {

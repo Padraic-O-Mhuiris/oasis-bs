@@ -1,6 +1,10 @@
 // tslint:disable:no-console
 import BigNumber from 'bignumber.js'
-import { Web3NetworkContextConnected, Web3NetworkContext } from 'components/blockchain/web3Context'
+import {
+  Web3NetworkContextConnected,
+  Web3NetworkContext,
+  Web3AccountContextConnected,
+} from 'components/blockchain/web3Context'
 import { memoize } from 'lodash'
 import { bindNodeCallback, combineLatest, concat, interval, Observable } from 'rxjs'
 import {
@@ -26,13 +30,36 @@ interface WithContractMethod {
   contract: (desc: ContractDesc) => any
 }
 
-export type ContextConnected = NetworkConfig & Web3NetworkContextConnected & WithContractMethod
+export type NetworkContextConnected = NetworkConfig &
+  Web3NetworkContextConnected &
+  WithContractMethod
 
-export type Context = ContextConnected
+export type NetworkContext = NetworkContextConnected
 
-export function createContext$<A>(
+export type AccountContextConnected = NetworkConfig &
+  Web3AccountContextConnected &
+  WithContractMethod
+
+export type AccountContext = AccountContextConnected
+
+export function createAccountContext$<A>(
+  web3AccountContextConnected$: Observable<Web3AccountContextConnected>,
+): Observable<AccountContext> {
+  return web3AccountContextConnected$.pipe(
+    map((web3AccountContext) => {
+      return {
+        ...networks[web3AccountContext.chainId],
+        ...web3AccountContext,
+        contract: (c: ContractDesc) => contract(web3AccountContext.web3, c),
+      }
+    }),
+    shareReplay(1),
+  )
+}
+
+export function createNetworkContext$<A>(
   web3NetworkContextConnected$: Observable<Web3NetworkContextConnected>,
-): Observable<Context> {
+): Observable<NetworkContext> {
   return web3NetworkContextConnected$.pipe(
     map((web3NetworkContext) => {
       return {
@@ -55,9 +82,9 @@ export function compareBigNumber(a1: BigNumber, a2: BigNumber): boolean {
 }
 
 export function createOnEveryBlock$<A>(
-  web3NetworkContext$: Observable<Web3NetworkContext>,
+  web3NetworkContextConnected$: Observable<Web3NetworkContextConnected>,
 ): [Observable<number>, EveryBlockFunction$] {
-  const onEveryBlock$ = combineLatest(web3NetworkContext$, every5Seconds$).pipe(
+  const onEveryBlock$ = combineLatest(web3NetworkContextConnected$, every5Seconds$).pipe(
     switchMap(([{ web3 }]) => bindNodeCallback(web3.eth.getBlockNumber)()),
     catchError((error, source) => {
       console.log(error)

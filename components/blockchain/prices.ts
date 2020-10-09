@@ -1,6 +1,6 @@
 import { BigNumber } from 'bignumber.js'
 import { getToken } from 'components/blockchain/config'
-import { Context, every10Seconds$ } from 'components/blockchain/network'
+import { NetworkContext, every10Seconds$ } from 'components/blockchain/network'
 import { bindNodeCallback, combineLatest, forkJoin, Observable, of } from 'rxjs'
 import { ajax } from 'rxjs/ajax'
 import { catchError, distinctUntilChanged, map, shareReplay, switchMap } from 'rxjs/operators'
@@ -13,7 +13,7 @@ export type GasPrice$ = Observable<BigNumber>
 
 export function createGasPrice$<A>(
   onEveryBlock$: Observable<number>,
-  context$: Observable<Context>,
+  context$: Observable<NetworkContext>,
 ): GasPrice$ {
   return combineLatest(onEveryBlock$, context$).pipe(
     switchMap(([, { web3 }]) => bindNodeCallback(web3.eth.getGasPrice)()),

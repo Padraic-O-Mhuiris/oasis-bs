@@ -1,9 +1,9 @@
 import { Global } from '@emotion/core'
 // @ts-ignore
-import { MDXProvider } from '@mdx-js/react'
-import { createWeb3ReactRoot, getWeb3ReactContext } from '@web3-react/core'
+import { createWeb3ReactRoot } from '@web3-react/core'
 import { AppContextProvider } from 'components/AppContextProvider'
-import { SetupWeb3Context, Web3ContextType } from 'components/blockchain/web3Context'
+import { SetupWeb3Context } from 'components/blockchain/web3Context'
+import { SetupAddressContext } from 'components/blockchain/addressContext'
 import { HeadTags } from 'components/HeadTags'
 import { AppLayout, AppLayoutProps, MarketingLayoutProps } from 'components/Layouts'
 // @ts-ignore
@@ -14,6 +14,7 @@ import { landingTheme, theme } from 'theme'
 // @ts-ignore
 import { components, ThemeProvider } from 'theme-ui'
 import Web3 from 'web3'
+import { ModalProvider } from 'helpers/modalHook'
 
 function getLibrary(provider: any): Web3 {
   return new Web3(provider)
@@ -66,19 +67,8 @@ interface CustomAppProps {
 
 //mixpanelInit()
 
-function createWeb3Provider(key) {
-  let provider
-  try {
-    provider = createWeb3ReactRoot(key)
-  } catch (e) {
-    console.log(`Web3ReactRoot: ${key} already exists`)
-    provider = getWeb3ReactContext(key).Provider
-  }
-  return provider
-}
-
-const Web3AccountProvider = createWeb3Provider(Web3ContextType.Account)
-const Web3NetworkProvider = createWeb3Provider(Web3ContextType.Network)
+const Web3AccountProvider = createWeb3ReactRoot('account')
+const Web3NetworkProvider = createWeb3ReactRoot('network')
 
 function App({ Component, pageProps }: AppProps & CustomAppProps) {
   const Layout = Component.layout || AppLayout
@@ -87,21 +77,23 @@ function App({ Component, pageProps }: AppProps & CustomAppProps) {
 
   return (
     <ThemeProvider theme={pageTheme}>
-      <MDXProvider {...{ components }}>
-        <Global styles={globalStyles} />
-        <Web3AccountProvider {...{ getLibrary }}>
-          <Web3NetworkProvider {...{ getLibrary }}>
-            <AppContextProvider>
+      <Global styles={globalStyles} />
+      <Web3AccountProvider {...{ getLibrary }}>
+        <Web3NetworkProvider {...{ getLibrary }}>
+          <AppContextProvider>
+            <ModalProvider>
               <HeadTags />
               <SetupWeb3Context>
-                <Layout {...layoutProps}>
-                  <Component {...pageProps} />
-                </Layout>
+                <SetupAddressContext>
+                  <Layout {...layoutProps}>
+                    <Component {...pageProps} />
+                  </Layout>
+                </SetupAddressContext>
               </SetupWeb3Context>
-            </AppContextProvider>
-          </Web3NetworkProvider>
-        </Web3AccountProvider>
-      </MDXProvider>
+            </ModalProvider>
+          </AppContextProvider>
+        </Web3NetworkProvider>
+      </Web3AccountProvider>
     </ThemeProvider>
   )
 }

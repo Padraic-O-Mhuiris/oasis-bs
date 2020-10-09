@@ -26,6 +26,7 @@ export function ModalProvider(props: { children?: React.ReactNode }) {
   function close() {
     setModal(undefined)
   }
+
   return (
     <ModalContext.Provider
       value={(modal: ModalComponent, modalProps?: any) => {

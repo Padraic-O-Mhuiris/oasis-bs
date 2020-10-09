@@ -6,7 +6,6 @@ import { Modal, ModalCloseIcon } from 'components/Modal'
 import { formatAddress } from 'helpers/formatters/format'
 import { ModalProps, useModal } from 'helpers/modalHook'
 import { useObservable } from 'helpers/observableHook'
-import { useRedirect } from 'helpers/useRedirect'
 import { useTranslation } from 'i18n'
 import React, { useRef } from 'react'
 // @ts-ignore
@@ -37,7 +36,13 @@ export function AccountButton() {
 
   if (web3AccountContext?.status === 'connected') {
     return (
-      <Button variant="outline" sx={{ fontWeight: 'body' }} onClick={() => openModal(AccountModal)}>
+      <Button
+        variant="outline"
+        sx={{ fontWeight: 'body' }}
+        onClick={() => {
+          openModal(AccountModal)
+        }}
+      >
         <NetworkIndicator
           chainId={web3AccountContext.chainId}
           address={web3AccountContext.account}
@@ -54,17 +59,12 @@ export function AccountModal({ close }: ModalProps) {
   const web3AccountContext = useObservable(web3AccountContext$)
   const clipboardContentRef = useRef<HTMLTextAreaElement>(null)
   const { t } = useTranslation('common')
-  const { replace } = useRedirect()
 
   function disconnect() {
-    if (web3Context?.status === 'connected') {
-      web3Context.deactivate()
+    if (web3AccountContext?.status === 'connected') {
+      web3AccountContext.deactivate()
     }
     close()
-    // for some reason queueing redirect is necessary
-    setTimeout(() => {
-      replace(`/connect`)
-    }, 0)
   }
 
   function copyToClipboard() {
@@ -98,15 +98,11 @@ export function AccountModal({ close }: ModalProps) {
           <Card variant="secondary">
             <Grid>
               <Flex sx={{ justifyContent: 'space-between' }}>
-                {connectionKind === 'network' ? (
-                  <Text sx={{ fontWeight: 'semiBold' }}>{t('connected-in-readonly-mode')}</Text>
-                ) : (
-                  <Text sx={{ fontWeight: 'semiBold' }}>
-                    {t('connected-with', {
-                      connectionKind: getConnectionKindMessage(connectionKind),
-                    })}
-                  </Text>
-                )}
+                <Text sx={{ fontWeight: 'semiBold' }}>
+                  {t('connected-with', {
+                    connectionKind: getConnectionKindMessage(connectionKind),
+                  })}
+                </Text>
               </Flex>
               <Flex sx={{ alignItems: 'center' }}>
                 <Box mr={2}>
@@ -137,7 +133,7 @@ export function AccountModal({ close }: ModalProps) {
                 sx={{ textAlign: 'left', fontSize: 3, p: 0 }}
                 onClick={disconnect}
               >
-                {t('change-wallets')}
+                Disconnect
               </Button>
             </Grid>
           </Card>
