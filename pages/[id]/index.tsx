@@ -10,6 +10,7 @@ export default function Vault() {
   const address = useObservable(address$)
   const isReadOnlyMode = useObservable(isReadOnlyMode$)
 
+  console.log(address)
   const router = useRouter()
   const { id } = router.query
 

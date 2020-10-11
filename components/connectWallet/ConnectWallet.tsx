@@ -5,7 +5,6 @@ import { InjectedConnector } from '@web3-react/injected-connector'
 import { useAppContext } from 'components/AppContextProvider'
 import { networks, networksByName } from 'components/blockchain/config'
 import { AccountKind, Web3AccountContext } from 'components/blockchain/web3Context'
-import { AppLink } from 'components/Links'
 import { useObservable } from 'helpers/observableHook'
 import { WithChildren } from 'helpers/types'
 import { mapValues } from 'lodash'
@@ -52,23 +51,16 @@ const SUPPORTED_WALLETS: SupportedWallet[] = [
 interface ConnectWalletButton {
   isConnecting: boolean
   iconName: string
-  description: string
   connect?: () => void
 }
 
-function ConnectWalletButton({
-  isConnecting,
-  iconName,
-  connect,
-  description,
-}: ConnectWalletButton) {
+function ConnectWalletButton({ isConnecting, iconName, connect }: ConnectWalletButton) {
   return (
     <Button variant="outlineSquare" sx={{ textAlign: 'left' }} onClick={connect}>
       <Flex sx={{ alignItems: 'center' }}>
         <Flex sx={{ ml: 1, mr: 3, alignItems: 'center' }}>
           {isConnecting ? <Spinner size={22} /> : <Icon name={iconName} size={22} />}
         </Flex>
-        {description}
       </Flex>
     </Button>
   )
@@ -147,7 +139,7 @@ export function ConnectWallet() {
         mx: 'auto',
       }}
     >
-      <Heading as="h1">{t('connect-wallet')}</Heading>
+      <Heading as="h1">Connect</Heading>
       {web3AccountContext.status === 'error' &&
         ((web3AccountContext.error instanceof UnsupportedChainIdError && (
           <Alert variant="error" sx={{ fontWeight: 'normal', borderRadius: 'large' }}>
@@ -157,7 +149,7 @@ export function ConnectWallet() {
           </Alert>
         )) || (
           <Alert variant="error" sx={{ fontWeight: 'normal', borderRadius: 'large' }}>
-            <Text sx={{ my: 1, ml: 2, fontSize: 3, lineHeight: 'body' }}>{connect - error}</Text>
+            <Text sx={{ my: 1, ml: 2, fontSize: 3, lineHeight: 'body' }}>connect - error</Text>
           </Alert>
         ))}
       <Grid columns={1}>
@@ -181,15 +173,6 @@ export function ConnectWallet() {
           )
         })}
       </Grid>
-      <Box sx={{ fontWeight: 'semiBold', mt: 5 }}>
-        <Text>{t('new-to-ethereum')}</Text>
-        <AppLink href="/" withAccountPrefix={false}>
-          <Flex sx={{ alignItems: 'center', justifyContent: 'center', color: 'onSecondary' }}>
-            <Text sx={{ color: 'onSecondary' }}>learn-more-wallets</Text>
-            <Icon name="increase" size="12px" sx={{ position: 'relative', ml: 1, top: '1px' }} />
-          </Flex>
-        </AppLink>
-      </Box>
     </Grid>
   )
 }
@@ -210,7 +193,6 @@ export function WithConnection({ children }: WithChildren) {
             const connectionKind = JSON.parse(serialized) as AccountKind
             if (connectionKind === 'injected') {
               const connector = await getConnector(connectionKind, chainId)
-              console.log(connector)
               web3AccountContext.connect(connector, connectionKind)
             }
           }

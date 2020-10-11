@@ -115,7 +115,7 @@
     "web3-eth-abi": "^1.2.11",
     "web3-provider-engine": "^15.0.12",
     "whatwg-fetch": "2.0.3",
-    "zod": "^1.5.0"
+    "zod": "^1.11.0"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",

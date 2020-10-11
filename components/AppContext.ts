@@ -1,6 +1,6 @@
 import { createWeb3Context$ } from 'components/blockchain/web3Context'
-import { combineLatest, Observable } from 'rxjs'
-import { map, shareReplay, startWith, switchMap } from 'rxjs/operators'
+import { combineLatest, Observable, of } from 'rxjs'
+import { map, shareReplay, startWith, switchMap, share } from 'rxjs/operators'
 
 import {
   createOnEveryBlock$,
@@ -10,6 +10,7 @@ import {
 import { createAddress$ } from './blockchain/addressContext'
 import { EstimateGasFunction, SendTransactionFunction } from './blockchain/calls/callsHelpers'
 import { TxMetaKind } from './blockchain/calls/txMeta'
+import { createRouteChangeComplete$ } from './blockchain/route'
 
 export type TxData = Approve
 
@@ -28,6 +29,10 @@ export interface TxHelpers {
 export type TxHelpers$ = Observable<TxHelpers>
 
 export function setupAppContext() {
+  const routeChangeComplete$ = createRouteChangeComplete$()
+
+  const address$ = createAddress$(routeChangeComplete$)
+
   const [
     web3AccountContext$,
     web3AccountContextConnected$,
@@ -36,8 +41,6 @@ export function setupAppContext() {
     web3NetworkContextConnected$,
     setupWeb3NetworkContext$,
   ] = createWeb3Context$()
-
-  const [address$, changeAddress, setupAddress$] = createAddress$()
 
   // const [, everyBlock$] = createOnEveryBlock$(web3NetworkContextConnected$)
 
@@ -57,7 +60,6 @@ export function setupAppContext() {
 
   return {
     address$,
-    setupAddress$,
     account$,
     isReadOnlyMode$,
     web3AccountContext$,
@@ -67,7 +69,6 @@ export function setupAppContext() {
     chainId$,
     networkContext$,
     accountContext$,
-    changeAddress,
   }
 }
 

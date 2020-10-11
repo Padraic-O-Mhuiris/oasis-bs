@@ -5,3 +5,4 @@ export const RAY = new BigNumber('1e27')
 export const RAD = new BigNumber('1e45')
 
 export const SECONDS_PER_YEAR = 365 * 24 * 60 * 60
+export const zeroAddress = '0x0000000000000000000000000000000000000000'

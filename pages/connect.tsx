@@ -1,6 +1,5 @@
 import { useAppContext } from 'components/AppContextProvider'
 import { ConnectWallet } from 'components/connectWallet/ConnectWallet'
-import { HeaderlessLayout } from 'components/Layouts'
 import { useRedirect } from 'helpers/useRedirect'
 import React, { useEffect } from 'react'
 
@@ -19,5 +18,3 @@ export default function ConnectPage() {
 
   return <ConnectWallet />
 }
-
-ConnectPage.layout = HeaderlessLayout
