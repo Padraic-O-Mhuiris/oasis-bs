@@ -12,8 +12,6 @@ import React, { useEffect } from 'react'
 import { Alert, Box, Button, Flex, Grid, Heading, Spinner, Text } from 'theme-ui'
 import { assert } from 'ts-essentials'
 
-export const SUCCESSFUL_CONNECTION = 'successfulConnection'
-
 const rpcUrls: { [chainId: number]: string } = mapValues(networks, (network) => network.infuraUrl)
 
 export function getNetwork() {
@@ -23,9 +21,9 @@ export function getNetwork() {
   return Number.parseInt(networksByName[network].id)
 }
 
-async function getConnector(connectorKind: AccountKind, network: number) {
+async function getConnector(accountKind: AccountKind, network: number) {
   assert(rpcUrls[network], 'Unsupported chainId!')
-  switch (connectorKind) {
+  switch (accountKind) {
     case 'injected':
       const connector = new InjectedConnector({
         supportedChainIds: Object.values(networks).map(({ id }) => Number.parseInt(id)),
@@ -41,11 +39,11 @@ async function getConnector(connectorKind: AccountKind, network: number) {
 
 interface SupportedWallet {
   iconName: string
-  connectionKind: AccountKind
+  accountKind: AccountKind
 }
 
 const SUPPORTED_WALLETS: SupportedWallet[] = [
-  { iconName: 'metamask_color', connectionKind: 'injected' },
+  { iconName: 'metamask_color', accountKind: 'injected' },
 ]
 
 interface ConnectWalletButton {
@@ -60,6 +58,7 @@ function ConnectWalletButton({ isConnecting, iconName, connect }: ConnectWalletB
       <Flex sx={{ alignItems: 'center' }}>
         <Flex sx={{ ml: 1, mr: 3, alignItems: 'center' }}>
           {isConnecting ? <Spinner size={22} /> : <Icon name={iconName} size={22} />}
+          Injected Wallet
         </Flex>
       </Flex>
     </Button>
@@ -68,13 +67,13 @@ function ConnectWalletButton({ isConnecting, iconName, connect }: ConnectWalletB
 
 function connect(
   web3AccountContext: Web3AccountContext | undefined,
-  connectorKind: AccountKind,
+  accountKind: AccountKind,
   chainId: number,
 ) {
   return async () => {
     if (web3AccountContext?.status === 'error' || web3AccountContext?.status === 'notConnected') {
       try {
-        web3AccountContext.connect(await getConnector(connectorKind, chainId), connectorKind)
+        web3AccountContext.connect(await getConnector(accountKind, chainId), accountKind)
       } catch (e) {
         console.log(e)
       }
@@ -124,7 +123,6 @@ export function ConnectWallet() {
   const web3AccountContext = useObservable(web3AccountContext$)
 
   if (!web3AccountContext) {
-    console.log('no context')
     return null
   }
 
@@ -143,31 +141,29 @@ export function ConnectWallet() {
       {web3AccountContext.status === 'error' &&
         ((web3AccountContext.error instanceof UnsupportedChainIdError && (
           <Alert variant="error" sx={{ fontWeight: 'normal', borderRadius: 'large' }}>
-            <Text sx={{ my: 1, ml: 2, fontSize: 3, lineHeight: 'body' }}>
-              metamask-unsupported-network
-            </Text>
+            <Text sx={{ my: 1, ml: 2, fontSize: 3, lineHeight: 'body' }}>Unsupported Chain ID</Text>
           </Alert>
         )) || (
           <Alert variant="error" sx={{ fontWeight: 'normal', borderRadius: 'large' }}>
-            <Text sx={{ my: 1, ml: 2, fontSize: 3, lineHeight: 'body' }}>connect - error</Text>
+            <Text sx={{ my: 1, ml: 2, fontSize: 3, lineHeight: 'body' }}>Connection Error</Text>
           </Alert>
         ))}
       <Grid columns={1}>
-        {SUPPORTED_WALLETS.map(({ iconName, connectionKind }) => {
+        {SUPPORTED_WALLETS.map(({ iconName, accountKind }) => {
           const isConnecting =
             web3AccountContext.status === 'connecting' &&
-            web3AccountContext.connectionKind === connectionKind
+            web3AccountContext.accountKind === accountKind
 
           return (
             <ConnectWalletButton
               {...{
-                key: connectionKind,
+                key: accountKind,
                 isConnecting,
                 iconName,
                 connect:
                   web3AccountContext.status === 'connecting'
                     ? undefined
-                    : connect(web3AccountContext, connectionKind, getNetwork()),
+                    : connect(web3AccountContext, accountKind, getNetwork()),
               }}
             />
           )
@@ -175,43 +171,4 @@ export function ConnectWallet() {
       </Grid>
     </Grid>
   )
-}
-
-export function WithConnection({ children }: WithChildren) {
-  const { web3AccountContext$, chainId$ } = useAppContext()
-
-  const chainId = useObservable(chainId$)
-
-  useEffect(() => {
-    let subscription: any
-    if (chainId) {
-      let firstTime = true
-      subscription = web3AccountContext$.subscribe(async (web3AccountContext) => {
-        try {
-          const serialized = localStorage.getItem(SUCCESSFUL_CONNECTION)
-          if (firstTime && web3AccountContext.status === 'notConnected' && serialized) {
-            const connectionKind = JSON.parse(serialized) as AccountKind
-            if (connectionKind === 'injected') {
-              const connector = await getConnector(connectionKind, chainId)
-              web3AccountContext.connect(connector, connectionKind)
-            }
-          }
-          if (web3AccountContext.status === 'connected') {
-            localStorage.setItem(
-              SUCCESSFUL_CONNECTION,
-              JSON.stringify(web3AccountContext.connectionKind),
-            )
-          } else {
-            localStorage.removeItem(SUCCESSFUL_CONNECTION)
-          }
-        } catch (e) {
-        } finally {
-          firstTime = false
-        }
-      })
-    }
-    return () => subscription?.unsubscribe()
-  }, [chainId])
-
-  return children
 }

@@ -5,38 +5,38 @@ import { isAppContextAvailable, useAppContext } from 'components/AppContextProvi
 import { networks } from 'components/blockchain/config'
 import { getNetwork } from 'components/connectWallet/ConnectWallet'
 import { Web3Provider } from 'ethers/dist/types/providers'
+import { Address } from 'helpers/schemas'
 import { WithChildren } from 'helpers/types'
 import { isEqual } from 'lodash'
 import React, { useEffect, useState } from 'react'
 import { Observable, ReplaySubject } from 'rxjs'
-import { distinctUntilChanged, filter } from 'rxjs/operators'
+import { distinctUntilChanged, filter, shareReplay } from 'rxjs/operators'
 import Web3 from 'web3'
 
-export type NetworkKind = 'network'
 export type AccountKind = 'injected'
 
-export interface Connectable<ConnectionKind> {
-  connect: (connector: AbstractConnector, connectionKind: ConnectionKind) => void
+export interface AccountConnectable {
+  connect: (connector: AbstractConnector, accountKind: AccountKind) => void
 }
 
-export interface Web3AccountContextNotConnected extends Connectable<AccountKind> {
+export interface Web3AccountContextNotConnected extends AccountConnectable {
   status: 'notConnected'
 }
 
 export interface Web3AccountContextConnecting {
   status: 'connecting'
-  connectionKind: AccountKind
+  accountKind: AccountKind
 }
 
 export interface Web3AccountContextConnected {
   status: 'connected'
-  connectionKind: AccountKind
+  accountKind: AccountKind
   web3: Web3
   chainId: number
   deactivate: () => void
-  account: string
+  account: Address
 }
-export interface Web3AccountContextError extends Connectable<AccountKind> {
+export interface Web3AccountContextError extends AccountConnectable {
   status: 'error'
   error: Error
 }
@@ -47,24 +47,30 @@ export type Web3AccountContext =
   | Web3AccountContextError
   | Web3AccountContextConnected
 
-export interface Web3NetworkContextNotConnected extends Connectable<NetworkKind> {
+export type NetworkKind = 'network'
+
+export interface NetworkConnectable {
+  connect: (connector: AbstractConnector, networkKind: NetworkKind) => void
+}
+
+export interface Web3NetworkContextNotConnected extends NetworkConnectable {
   status: 'notConnected'
 }
 
 export interface Web3NetworkContextConnecting {
   status: 'connecting'
-  connectionKind: NetworkKind
+  networkKind: NetworkKind
 }
 
 export interface Web3NetworkContextConnected {
   status: 'connected'
-  connectionKind: NetworkKind
+  networkKind: NetworkKind
   web3: Web3
   chainId: number
   deactivate: () => void
 }
 
-export interface Web3NetworkContextError extends Connectable<NetworkKind> {
+export interface Web3NetworkContextError extends NetworkConnectable {
   status: 'error'
   error: Error
 }
@@ -75,7 +81,7 @@ export type Web3NetworkContext =
   | Web3NetworkContextError
   | Web3NetworkContextConnected
 
-type CreatedWeb3Context = [
+type Web3Context = [
   Observable<Web3AccountContext>,
   Observable<Web3AccountContextConnected>,
   () => void,
@@ -96,13 +102,12 @@ function createWeb3AccountContextSetup(web3Context$: ReplaySubject<Web3AccountCo
     }
 
     const { connector, library, chainId, account, activate, deactivate, active, error } = context
-
     const [activatingConnector, setActivatingConnector] = useState<AbstractConnector>()
-    const [connectionKind, setConnectionKind] = useState<AccountKind>()
+    const [accountKind, setAccountKind] = useState<AccountKind>()
 
-    async function connect(connector: AbstractConnector, connectionKind: AccountKind) {
+    async function connect(connector: AbstractConnector, accountKind: AccountKind) {
       setActivatingConnector(connector)
-      setConnectionKind(connectionKind)
+      setAccountKind(accountKind)
       await activate(connector, (e: Error) => console.error(e), false)
     }
 
@@ -116,7 +121,7 @@ function createWeb3AccountContextSetup(web3Context$: ReplaySubject<Web3AccountCo
       if (activatingConnector) {
         push({
           status: 'connecting',
-          connectionKind: connectionKind!,
+          accountKind: accountKind!,
         })
         return
       }
@@ -128,8 +133,8 @@ function createWeb3AccountContextSetup(web3Context$: ReplaySubject<Web3AccountCo
         })
         return
       }
+
       if (error) {
-        console.log(error)
         push({
           status: 'error',
           error,
@@ -138,17 +143,19 @@ function createWeb3AccountContextSetup(web3Context$: ReplaySubject<Web3AccountCo
         return
       }
 
-      push({
-        status: 'connected',
-        connectionKind: connectionKind!,
-        web3: library as any,
-        chainId: chainId!,
-        account: account!,
-        deactivate,
-      })
+      if (active && account && chainId) {
+        push({
+          status: 'connected',
+          accountKind: accountKind!,
+          web3: library as any,
+          chainId: chainId,
+          account: account,
+          deactivate,
+        })
+      }
     }, [
       activatingConnector,
-      connectionKind,
+      accountKind,
       connector,
       library,
       chainId,
@@ -177,22 +184,12 @@ function createWeb3NetworkContextSetup(web3Context$: ReplaySubject<Web3NetworkCo
     const { connector, library, chainId, account, activate, deactivate, active, error } = context
 
     const [activatingConnector, setActivatingConnector] = useState<AbstractConnector>()
-    const [connectionKind, setConnectionKind] = useState<NetworkKind>()
+    const [networkKind, setNetworkKind] = useState<NetworkKind>()
 
-    async function connect(connector: AbstractConnector, connectionKind: NetworkKind) {
+    async function connect(connector: AbstractConnector, networkKind: NetworkKind) {
       setActivatingConnector(connector)
-      setConnectionKind(connectionKind)
-      await activate(connector, (e: Error) => console.error(e), false)
-    }
-
-    function connectNetwork() {
-      connect(
-        new NetworkConnector({
-          urls: { [getNetwork()]: networks[getNetwork()].infuraUrl },
-          defaultChainId: getNetwork(),
-        }),
-        'network',
-      )
+      setNetworkKind(networkKind)
+      await activate(connector, (e: Error) => console.log(e), false)
     }
 
     useEffect(() => {
@@ -205,17 +202,25 @@ function createWeb3NetworkContextSetup(web3Context$: ReplaySubject<Web3NetworkCo
       if (activatingConnector) {
         push({
           status: 'connecting',
-          connectionKind: connectionKind!,
+          networkKind: networkKind!,
         })
         return
       }
 
       if (!connector) {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        connect(
+          new NetworkConnector({
+            urls: { [getNetwork()]: networks[getNetwork()].infuraUrl },
+            defaultChainId: getNetwork(),
+          }),
+          'network',
+        )
+
         push({
           status: 'notConnected',
           connect,
         })
-        connectNetwork()
         return
       }
 
@@ -228,16 +233,18 @@ function createWeb3NetworkContextSetup(web3Context$: ReplaySubject<Web3NetworkCo
         return
       }
 
-      push({
-        status: 'connected',
-        connectionKind: 'network',
-        web3: library as any,
-        chainId: chainId!,
-        deactivate,
-      })
+      if (active && chainId) {
+        push({
+          status: 'connected',
+          networkKind: networkKind!,
+          web3: library as any,
+          chainId: chainId,
+          deactivate,
+        })
+      }
     }, [
       activatingConnector,
-      connectionKind,
+      networkKind,
       connector,
       library,
       chainId,
@@ -252,29 +259,35 @@ function createWeb3NetworkContextSetup(web3Context$: ReplaySubject<Web3NetworkCo
   return setupWeb3Context$
 }
 
-export function createWeb3Context$(): CreatedWeb3Context {
+export function createWeb3Context$(): Web3Context {
   const _web3AccountContext$ = new ReplaySubject<Web3AccountContext>(1)
   const _web3NetworkContext$ = new ReplaySubject<Web3NetworkContext>(1)
 
   const web3AccountContext$ = _web3AccountContext$.pipe(distinctUntilChanged(isEqual))
   const web3NetworkContext$ = _web3NetworkContext$.pipe(distinctUntilChanged(isEqual))
 
+  const web3AccountContextConnected$ = web3AccountContext$.pipe(
+    filter(({ status }) => status === 'connected'),
+    shareReplay(1),
+  )
+
+  const web3NetworkContextConnected$ = web3NetworkContext$.pipe(
+    filter(({ status }) => status === 'connected'),
+    shareReplay(1),
+  )
   return [
     web3AccountContext$,
-    web3AccountContext$.pipe(filter(({ status }) => status === 'connected')) as Observable<
-      Web3AccountContextConnected
-    >,
+    web3AccountContextConnected$,
     createWeb3AccountContextSetup(_web3AccountContext$),
     web3NetworkContext$,
-    web3NetworkContext$.pipe(filter(({ status }) => status === 'connected')) as Observable<
-      Web3NetworkContextConnected
-    >,
+    web3NetworkContextConnected$,
     createWeb3NetworkContextSetup(_web3NetworkContext$),
   ]
 }
 
 function SetupWeb3AccountContextInternal({ children }: WithChildren) {
   const { setupWeb3AccountContext$ } = useAppContext()
+
   setupWeb3AccountContext$()
   return children
 }

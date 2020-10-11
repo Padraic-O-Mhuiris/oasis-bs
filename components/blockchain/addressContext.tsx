@@ -6,7 +6,7 @@ import { distinctUntilChanged, filter, map, shareReplay } from 'rxjs/operators'
 export function createAddress$(routeChangeComplete$: Observable<RouteQuery>): Observable<Address> {
   return routeChangeComplete$.pipe(
     filter((query) => AddressQuerySchema.safeParse(query).success),
-    map(({ address }) => address),
+    map(({ address }: { address: Address }) => address),
     distinctUntilChanged(isEqual),
     shareReplay(1),
   )

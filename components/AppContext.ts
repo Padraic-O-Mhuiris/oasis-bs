@@ -10,7 +10,7 @@ import {
 import { createAddress$ } from './blockchain/addressContext'
 import { EstimateGasFunction, SendTransactionFunction } from './blockchain/calls/callsHelpers'
 import { TxMetaKind } from './blockchain/calls/txMeta'
-import { createRouteChangeComplete$ } from './blockchain/route'
+import { routeChangeComplete$ } from './blockchain/route'
 
 export type TxData = Approve
 
@@ -29,8 +29,6 @@ export interface TxHelpers {
 export type TxHelpers$ = Observable<TxHelpers>
 
 export function setupAppContext() {
-  const routeChangeComplete$ = createRouteChangeComplete$()
-
   const address$ = createAddress$(routeChangeComplete$)
 
   const [
@@ -52,7 +50,6 @@ export function setupAppContext() {
   )
 
   const chainId$ = web3NetworkContextConnected$.pipe(map(({ chainId }) => chainId))
-
   const isReadOnlyMode$ = combineLatest(account$, address$).pipe(
     map(([account, address]) => !account || account !== address),
     startWith(true),

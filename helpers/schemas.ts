@@ -13,7 +13,8 @@ export const IdQuerySchema = z.object({
   id: z.string().refine((val) => IntegerRegex.test(val), 'Invalid ID'),
 })
 
-export const RouteQuerySchema = z.union([AddressQuerySchema, IdQuerySchema])
+export const EmptyQuerySchema = z.object({})
+export const RouteQuerySchema = z.union([AddressQuerySchema, IdQuerySchema, EmptyQuerySchema])
 
 export type Address = z.infer<typeof AddressSchema>
 

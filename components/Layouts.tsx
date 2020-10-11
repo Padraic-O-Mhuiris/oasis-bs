@@ -23,9 +23,5 @@ export function AppLayout({ children }: WithChildren) {
   if (!isAppContextAvailable()) {
     return null
   }
-  return (
-    <BasicLayout>
-      <WithConnection>{children}</WithConnection>
-    </BasicLayout>
-  )
+  return <BasicLayout>{children}</BasicLayout>
 }

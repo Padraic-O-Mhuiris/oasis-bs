@@ -62,7 +62,7 @@ function App({ Component, pageProps }: AppProps) {
   const pageTheme = theme
 
   if (!process.browser) {
-    return <Box></Box>
+    return <div></div>
   }
 
   return (
